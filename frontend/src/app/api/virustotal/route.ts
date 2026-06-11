@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   try {
     const res = await fetch(`https://www.virustotal.com/api/v3/files/${hash}`, {
       headers: {
-        "x-apikey": VT_API_KEY,
+        "x-apikey": VT_API_KEY as string,
       },
     });
 
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     const res = await fetch("https://www.virustotal.com/api/v3/files", {
       method: "POST",
       headers: {
-        "x-apikey": VT_API_KEY,
+        "x-apikey": VT_API_KEY as string,
       },
       body: vtFormData,
     });
