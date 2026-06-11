@@ -220,8 +220,8 @@ export default function Home() {
   const scoreData: ScoringResult | null = analysisResult
     ? calculateScore({
         permissions: analysisResult.manifest.permissions,
-        isDebuggable: analysisResult.manifest.application?.debuggable ?? false,
-        allowBackup: analysisResult.manifest.application?.allowBackup ?? true,
+        isDebuggable: analysisResult.manifest.isDebuggable ?? false,
+        allowBackup: analysisResult.manifest.allowBackup ?? true,
         exportedComponents: 0,
         urls: analysisResult.analysis.urls,
         ips: analysisResult.analysis.ips,
@@ -280,8 +280,8 @@ export default function Home() {
 
       const input: ScoringInput = {
         permissions: result.manifest.permissions,
-        isDebuggable: result.manifest.application?.debuggable ?? false,
-        allowBackup: result.manifest.application?.allowBackup ?? true,
+        isDebuggable: result.manifest.isDebuggable ?? false,
+        allowBackup: result.manifest.allowBackup ?? true,
         exportedComponents: 0,
         urls: result.analysis.urls,
         ips: result.analysis.ips,
@@ -298,7 +298,7 @@ export default function Home() {
 
       setLedger(prev => [{
         id: file.name,
-        pkg: result.manifest.package || "unknown.pkg",
+        pkg: result.manifest.packageName || "unknown.pkg",
         time: new Date().toLocaleTimeString(),
         score: generatedScore.score,
         tier: generatedScore.tier,
@@ -316,7 +316,7 @@ export default function Home() {
       setAiLoading(true);
       try {
         const profileData = {
-          packageName: result.manifest.package || "Unknown",
+          packageName: result.manifest.packageName || "Unknown",
           fileName: file.name,
           verdict: generatedScore.tier,
           score: generatedScore.score,
@@ -325,7 +325,7 @@ export default function Home() {
           ips: result.analysis.ips,
           apis: result.analysis.sdks.map(sdk => ({ name: sdk.name })),
           keyFindings: result.analysis.findings.map(f => ({ severity: f.severity, scope: f.scope, label: f.title, details: f.description || "" })),
-          isDebuggable: result.manifest.application?.debuggable,
+          isDebuggable: result.manifest.isDebuggable,
           debugKey: result.signature.debugKey,
           classCount: result.classNames.length,
           stringCount: result.allStrings.length,
@@ -355,18 +355,18 @@ export default function Home() {
     const pkgName  = isBad ? "com.flappy.modded.malware" : "com.google.android.calculator";
     const mockFile = new File([new Uint8Array(isBad ? 5 * 1024 * 1024 : 800 * 1024)], fileName, { type: "application/vnd.android.package-archive" });
 
-    const mockResult: AnalyzedApkResult = {
+    const mockResult = {
       fileHash: isBad ? "e517ab2ff2f2a5510519faaa50aa4984f4abc5dea29797fe585c49505ff72c69" : "a1b2c3d4e5f6a7b8c9d0e1f2",
       manifest: {
-        package: pkgName, versionName: "1.0",
+        packageName: pkgName, versionName: "1.0",
         permissions: isBad
           ? ["android.permission.SYSTEM_ALERT_WINDOW","android.permission.RECEIVE_SMS","android.permission.INTERNET","android.permission.REQUEST_INSTALL_PACKAGES","android.permission.BIND_ACCESSIBILITY_SERVICE"]
           : ["android.permission.INTERNET"],
-        application: { debuggable: isBad, allowBackup: true },
+        isDebuggable: isBad, allowBackup: true,
       },
       classNames: isBad ? ["com.flappy.modded.Main","dalvik.system.DexClassLoader","com.hacker.Payload","android.accessibilityservice.AccessibilityService"] : ["com.google.calculator.Main"],
       allStrings:  isBad ? ["su -c","chmod 777","http://malicious-c2.io/drop","DexClassLoader"] : ["Calculate","Error","0"],
-      signature:   { status: isBad ? "invalid" : "valid", debugKey: isBad },
+      signature:   { status: isBad ? "UNTRUSTED" : "TRUSTED", debugKey: isBad },
       analysis: {
         permissions: isBad ? [
           { name: "android.permission.SYSTEM_ALERT_WINDOW",  dangerous: true, severity: "CRITICAL", category: "Overlay",   description: "Screen overlay phishing risk" },
@@ -390,7 +390,7 @@ export default function Home() {
           permalink: `https://www.virustotal.com/gui/file/${isBad ? "e517ab2ff2f2a5510519faaa50aa4984f4abc5dea29797fe585c49505ff72c69" : "a1b2c3d4e5f6a7b8c9d0e1f2"}`,
         },
       },
-    };
+    } as unknown as AnalyzedApkResult;
 
     await runAnalysis(mockFile, mockResult);
   }, [runAnalysis]);
@@ -400,7 +400,7 @@ export default function Home() {
     const profile: ReportProfile = {
       fileName: currentFile?.name || "unknown.apk",
       fileSize: currentFile?.size || 0,
-      packageName: analysisResult.manifest.package || "Unknown",
+      packageName: analysisResult.manifest.packageName || "Unknown",
       version: analysisResult.manifest.versionName || "1.0",
       minSdk: "21", targetSdk: "33",
       score: scoreData.score,
@@ -410,9 +410,9 @@ export default function Home() {
       signature: {
         issuer: analysisResult.signature.status,
         subject: analysisResult.signature.status,
-        selfSigned: analysisResult.signature.status === "invalid",
+        selfSigned: analysisResult.signature.status === "UNTRUSTED",
         debugKey: analysisResult.signature.debugKey,
-        status: analysisResult.signature.status === "invalid" ? "UNTRUSTED" : "TRUSTED",
+        status: analysisResult.signature.status === "UNTRUSTED" ? "UNTRUSTED" : "TRUSTED",
       },
       permissions: analysisResult.analysis.permissions.map(p => ({
         name: p.name,
@@ -442,7 +442,7 @@ export default function Home() {
     try {
       const { askNimAnalyst } = await import("@/lib/ai/nvidia-client");
       const profileData = {
-        packageName: analysisResult.manifest.package || "Unknown",
+        packageName: analysisResult.manifest.packageName || "Unknown",
         fileName: currentFile?.name || "unknown.apk",
         verdict: riskTier,
         score: riskScore,
@@ -451,7 +451,7 @@ export default function Home() {
         ips: analysisResult.analysis.ips,
         apis: analysisResult.analysis.sdks.map(sdk => ({ name: sdk.name })),
         keyFindings: analysisResult.analysis.findings.map(f => ({ severity: f.severity, scope: f.scope, label: f.title, details: f.description || "" })),
-        isDebuggable: analysisResult.manifest.application?.debuggable,
+        isDebuggable: analysisResult.manifest.isDebuggable,
         debugKey: analysisResult.signature.debugKey,
         classCount: analysisResult.classNames.length,
         stringCount: analysisResult.allStrings.length,
@@ -558,7 +558,7 @@ export default function Home() {
               <div className="flex items-center gap-2 animate-fadein">
                 <span className="text-muted" style={{ fontSize: "0.72rem" }}>▸</span>
                 <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)" }} className="font-mono">
-                  {analysisResult.manifest.package}
+                  {analysisResult.manifest.packageName}
                 </span>
                 <span className={verdictBadgeClass(riskTier)}>{riskTier}</span>
               </div>
@@ -998,7 +998,7 @@ function ScannerView({
             </div>
             <AnalysisTimeline
               stages={buildStagesFromProfile(
-                analysisResult.manifest.package || "unknown",
+                analysisResult.manifest.packageName || "unknown",
                 analysisResult.manifest.permissions.length,
                 analysisResult.classNames.length,
                 analysisResult.analysis.urls.length,
@@ -1315,12 +1315,12 @@ function DynamicAnalysisView({ analysisResult }: { analysisResult: AnalyzedApkRe
           <div style={{ display: "flex", gap: 5 }}>
             {["#FF5F57","#FFBD2E","#28CA41"].map(c => <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c }} />)}
           </div>
-          <span className="font-mono text-muted" style={{ fontSize: "0.72rem" }}>aparoid-sandbox — {analysisResult?.manifest.package ?? "waiting…"}</span>
+          <span className="font-mono text-muted" style={{ fontSize: "0.72rem" }}>aparoid-sandbox — {analysisResult?.manifest.packageName ?? "waiting…"}</span>
         </div>
         <div className="terminal" style={{ minHeight: 280, padding: 20 }}>
           {analysisResult ? (
             <DynamicTrace traces={[
-              <div key="dt-start" className="mb-1" style={{ color: "var(--accent-cyan)" }}>&gt; aparoid v2.1 — attaching to {analysisResult.manifest.package}…</div>,
+              <div key="dt-start" className="mb-1" style={{ color: "var(--accent-cyan)" }}>&gt; aparoid v2.1 — attaching to {analysisResult.manifest.packageName}…</div>,
               <div key="dt-hook" className="mb-1">&gt; Hooking Android API layer… <span style={{ color: "var(--accent-green)" }}>OK</span></div>,
               <div key="dt-frida" className="mb-1">&gt; Frida instrumentation active. Tracing calls…</div>,
               ...(analysisResult.analysis.urls.length > 0 ? [
@@ -1329,7 +1329,7 @@ function DynamicAnalysisView({ analysisResult }: { analysisResult: AnalyzedApkRe
               ...(analysisResult.analysis.ips.length > 0 ? [
                 <div key="dt-ip" className="mb-1" style={{ color: "var(--accent-yellow)" }}>[AP-D1] SOCKET: TCP connect → {analysisResult.analysis.ips[0]}:443</div>,
               ] : []),
-              <div key="dt-file" className="mb-1">[AP-D3] FILE READ: /data/data/{analysisResult.manifest.package}/shared_prefs/session.xml</div>,
+              <div key="dt-file" className="mb-1">[AP-D3] FILE READ: /data/data/{analysisResult.manifest.packageName}/shared_prefs/session.xml</div>,
               ...(hasCritical ? [
                 <div key="dt-dex" className="mb-1" style={{ color: "var(--accent-red)" }}>[AP-D5] ⚠ DexClassLoader invoked — dynamic payload detected at runtime!</div>,
                 <div key="dt-overlay" className="mb-1" style={{ color: "var(--accent-red)" }}>[AP-D2] ⚠ SYSTEM_ALERT_WINDOW draw() called — potential overlay active</div>,

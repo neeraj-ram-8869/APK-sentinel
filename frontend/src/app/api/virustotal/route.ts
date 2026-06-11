@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const VT_API_KEY = process.env.VIRUSTOTAL_API_KEY;
+const VT_API_KEY = process.env.VIRUSTOTAL_API_KEY || "";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
