@@ -14,6 +14,9 @@ export const metadata: Metadata = {
     "reverse engineering",
     "AI risk scoring",
   ],
+  verification: {
+    google: '-voCn8AtdQ6QlPwfn1gTAN5Zc2Xn_L9pZ6aIMKuSros',
+  },
 };
 
 export default function RootLayout({
